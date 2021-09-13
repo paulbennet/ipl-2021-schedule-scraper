@@ -1,0 +1,38 @@
+{
+    "name": "ipl-2021-schedule-scraper",
+    "version": "1.0.0",
+    "description": "A puppeteer based web scraper for IPL event schedule",
+    "main": "index.js",
+    "bin": {
+        "ipl-2021-scraper": "index.js"
+    },
+    "scripts": {
+        "fetch": "node index.js"
+    },
+    "author": "Paul Bennet",
+    "license": "GPL-3.0-or-later",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/paulbennet/ipl-2021-schedule-scrapper.git"
+    },
+    "dependencies": {
+        "commander": "^8.1.0",
+        "fs-extra": "^10.0.0",
+        "puppeteer": "^10.1.0"
+    },
+    "devDependencies": {
+        "eslint": "^7.31.0",
+        "eslint-config-standard": "^16.0.3",
+        "eslint-plugin-import": "^2.23.4",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-promise": "^5.1.0"
+    },
+    "keywords": [
+        "ipl",
+        "iplt20",
+        "2021",
+        "puppeteer",
+        "scrape",
+        "webscraper"
+    ]
+}
