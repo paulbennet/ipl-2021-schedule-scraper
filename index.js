@@ -5,6 +5,212 @@ const fse = require('fs-extra')
 const path = require('path')
 const { program } = require('commander')
 
+const fetchResultsData = async () => {
+  const browser = await puppeteer.launch({
+    // DEBUG: For visually debugging the browser
+    // headless: false,
+    // devtools: true,
+    // Page content should take full viewport of browser
+    defaultViewport: null
+  })
+
+  // Using the default opened page itself
+  // const pages = await browser.pages()
+  // const page = pages[0]
+
+  const context = await browser.createIncognitoBrowserContext()
+  const page = await context.newPage()
+
+  // DEBUG: Setting UA to latest chrome
+  // page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
+
+  const resultsURL = 'https://www.iplt20.com/matches/results/men/2021'
+
+  // NOTE: Fetch matches from results page
+  await page.goto(resultsURL, {
+    waitUntil: 'networkidle2',
+    // Hopefully page should load before 20 secs
+    timeout: 20000
+  })
+
+  await page.waitForTimeout(2000)
+
+  let resultsJSON = null
+
+  resultsJSON = await page.evaluate(() => {
+    return new Promise((resolve, reject) => {
+      const $ = window.$
+
+      const events = []
+
+      const getAbsURL = (relURL = '') => {
+        return $('<a />').attr('href', relURL)[0].href
+      }
+
+      const sanitizeText = (text = '') => {
+        return text.replace(/\n/gmi, '')
+      }
+
+      $('.js-match.match-list__item').each((index, element) => {
+        const participants = []
+
+        $(element).find('.result__team').each((teamIndex, teamElement) => {
+          let teamID = $(teamElement).find('.result__logo.u-show-tablet.u-hide-phablet.tLogo40x').attr('class')
+          teamID = teamID.replace('result__logo u-show-tablet u-hide-phablet tLogo40x', '').trim()
+
+          const participant = {
+            teamID,
+            teamName: sanitizeText($(teamElement).find('.result__team-name').eq(0).text())
+          }
+
+          const isWinner = !($(teamElement).hasClass('result__team--loser'))
+
+          if (isWinner) {
+            participant.isWinner = true
+          }
+
+          participants.push(participant)
+        }
+        )
+
+        let startTime = new Date(parseInt($(element).attr('data-timestamp')))
+
+        startTime = startTime.toISOString()
+
+        const infoElement = $(element).find('.result__info').eq(1)
+        const matchNumber = sanitizeText($(infoElement).find('.result__description').text()).replace(/match /gmi, '')
+        const matchID = $(element).attr('data-match-id')
+        const venueID = $(element).attr('data-venue-id')
+
+        console.log(participants)
+
+        const title = `${participants[0].teamName} 🆚 ${participants[1].teamName}`
+
+        let location = sanitizeText(infoElement.get(0).childNodes[2].nodeValue).trim()
+
+        location = location.split(',').slice(1).map((item) => {
+          return item.trim()
+        }
+        ).join(', ').trim()
+
+        events.push({
+          startTime,
+          location,
+          title,
+          link: getAbsURL($(element).find('.result__button.result__button--mc.btn').attr('href')),
+          meta: {
+            participants,
+            matchNumber,
+            matchID,
+            venueID
+          }
+        })
+      }
+      )
+
+      resolve(events)
+    })
+  })
+
+  await browser.close()
+
+  return resultsJSON
+}
+
+const fetchSchedulesData = async () => {
+  const schedulesURL = 'https://www.iplt20.com/matches/schedule/men'
+
+  const browser = await puppeteer.launch({
+    // DEBUG: For visually debugging the browser
+    // headless: false,
+    // devtools: true,
+    // Page content should take full viewport of browser
+    defaultViewport: null
+  })
+
+  // Using the default opened page itself
+  // const pages = await browser.pages()
+  // const page = pages[0]
+
+  const context = await browser.createIncognitoBrowserContext()
+  const page = await context.newPage()
+
+  // DEBUG: Setting UA to latest chrome
+  // page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
+
+  // NOTE: Fetch matches from schedules page
+  await page.goto(schedulesURL, {
+    waitUntil: 'networkidle2',
+    // Hopefully page should load before 20 secs
+    timeout: 20000
+  })
+
+  await page.waitForTimeout(2000)
+
+  let schedulesJSON = null
+
+  schedulesJSON = await page.evaluate(() => {
+    return new Promise((resolve, reject) => {
+      const $ = window.$
+
+      const events = []
+
+      const getAbsURL = (relURL = '') => {
+        return $('<a />').attr('href', relURL)[0].href
+      }
+
+      const sanitizeText = (text = '') => {
+        return text.replace(/\n/gmi, '')
+      }
+
+      $('.js-match.match-list__item').each((index, element) => {
+        const participants = []
+
+        $(element).find('.fixture__team').each((teamIndex, teamElement) => {
+          const participant = {
+            teamID: sanitizeText($(teamElement).find('.fixture__team-name--abbrv').text()),
+            teamName: sanitizeText($(teamElement).find('.fixture__team-name').eq(0).text())
+          }
+
+          participants.push(participant)
+        }
+        )
+
+        let startTime = new Date($(element).attr('data-timestamp'))
+
+        startTime = startTime.toISOString()
+
+        const infoElement = $(element).find('.fixture__info span')
+        const matchNumber = sanitizeText($(infoElement).find('.fixture__description').text()).replace(/match /gmi, '')
+        const matchID = $(element).attr('data-match-id')
+        const venueID = $(element).attr('data-venue-id')
+
+        const title = `${participants[0].teamName} 🆚 ${participants[1].teamName}`
+
+        events.push({
+          startTime,
+          location: sanitizeText(infoElement.get(0).childNodes[1].nodeValue).trim(),
+          title,
+          link: getAbsURL($(element).find('.fixture__button.fixture__button--mc.btn').attr('href')),
+          meta: {
+            participants,
+            matchNumber,
+            matchID,
+            venueID
+          }
+        })
+      }
+      )
+
+      resolve(events)
+    })
+  })
+
+  await browser.close()
+
+  return schedulesJSON
+}
+
 const mainProcess = async () => {
   program.option('-o --output-dir <output-dir>', 'Output directory path')
 
@@ -30,126 +236,71 @@ const mainProcess = async () => {
   outputDir = path.resolve(outputDir)
   fse.mkdirpSync(outputDir)
 
-  const browser = await puppeteer.launch({
-    // DEBUG: For visually debugging the browser
-    // headless: false,
-    // Page content should take full viewport of browser
-    defaultViewport: null
-  })
+  const venues = {}
+  const teams = {}
+  const completedMatches = {}
 
-  // Using the default opened page itself
-  // const pages = await browser.pages()
-  // const page = pages[0]
+  const resultsJSON = await fetchResultsData()
+  const schedulesJSON = await fetchSchedulesData()
 
-  const context = await browser.createIncognitoBrowserContext()
-  const page = await context.newPage()
+  const schedules = []
 
-  // DEBUG: Setting UA to latest chrome
-  // page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
+  resultsJSON.reverse().forEach((resultItem) => {
+    completedMatches[resultItem.meta.matchID] = true
 
-  let pageURL = null
+    venues[resultItem.meta.venueID] = resultItem.location
 
-  pageURL = 'https://www.iplt20.com/matches/schedule/men'
-
-  await page.goto(pageURL, {
-    waitUntil: 'networkidle2',
-    // Hopefully page should load before 20 secs
-    timeout: 20000
-  })
-
-  await page.waitForTimeout(2000)
-
-  let outputJSON = null
-
-  outputJSON = await page.evaluate(() => {
-    return new Promise((resolve, reject) => {
-      const $ = window.$
-
-      const getAbsURL = (relURL) => {
-        return $('<a />').attr('href', relURL)[0].href
+    resultItem.meta.participants.forEach((participant) => {
+      if (participant.teamID === 'TBC') {
+        return null
       }
-
-      const events = []
-
-      let lastEventStartTime
-
-      $('.clickable-schedule-row').each((index, element) => {
-        const participants = []
-
-        $(element).find('.schedule-event .col-sm-6:nth(1) .playerTag').each((playerIndex, playerElement) => {
-          const participant = {
-            countryID: $(playerElement).attr('country'),
-            countryName: $(playerElement).find('.country .noc').attr('title'),
-            countryFlag: getAbsURL($(playerElement).find('.country .flag').attr('src')),
-            name: ($(playerElement).find('.name span:nth(1)').text() || $(playerElement).find('.name').text()).replace(/\n/gmi, '')
-          }
-
-          const medal = ($(playerElement).parent().prev('.MedalBoxSmall').find('img').attr('alt') || '').replace('Medal', '').trim().toUpperCase()
-
-          if (medal) {
-            participant.medal = medal
-          }
-
-          const score = $(playerElement).closest('.row').find('.resultContainer .result').text().replace(/\n/gmi, '')
-
-          if (score) {
-            participant.score = score
-
-            if ($(playerElement).closest('.row').find('.resultContainer.winner').length) {
-              participant.isWinner = true
-            }
-          }
-
-          participants.push(participant)
-        }
-        )
-
-        let startTime = $(element).find('.schedule-time-data').attr('full-date')
-
-        if (!startTime && $(element).find('.schedule-time').text().replace(/\n/gmi, '').toUpperCase() === 'FOLLOWED BY') {
-          startTime = lastEventStartTime
-        }
-
-        lastEventStartTime = startTime
-
-        const medalEventType = (
-          $(element).find('.schedule-event .col-sm-6:nth(0) img.medal').attr('title') || ''
-        ).replace('Medal Event', '').trim().toUpperCase()
-
-        const meta = {
-          sportID: $(element).attr('sport'),
-          sportName: $($(element).parents('.schedule-container').parents('div').prev('.schedule-day-header').find('a')[0]).text().replace(/\n/gmi, ''),
-          sportLogo: getAbsURL($(element).parents('.schedule-container').parents('div').prev('.schedule-day-header').find('.sport-icon').attr('src')),
-          status: $(element).find('.schedule-status').text().replace(/\n/gmi, '').toUpperCase(),
-          participants
-        }
-
-        if (medalEventType) {
-          meta.medalType = medalEventType
-        }
-
-        events.push({
-          startTime,
-          location: $(element).find('.schedule-venue').text().replace(/\n/gmi, ''),
-          title: $(element).find('.schedule-event .col-sm-6:nth(0) a').text().replace(/\n/gmi, ''),
-          link: getAbsURL($(element).attr('data-url')),
-          meta
-        })
-      }
-      )
-
-      resolve(events)
+      teams[participant.teamID] = participant.teamName
     })
+
+    schedules.push(resultItem)
   })
+
+  schedulesJSON.forEach((matchItem) => {
+    if (completedMatches[matchItem.meta.matchID]) {
+      // To avoid duplicated matches between results & schedules page
+      return null
+    }
+
+    venues[matchItem.meta.venueID] = matchItem.location
+
+    matchItem.meta.participants.forEach((participant) => {
+      if (participant.teamID === 'TBC') {
+        return null
+      }
+      teams[participant.teamID] = participant.teamName
+    })
+
+    let { matchNumber } = matchItem.meta
+    matchNumber = parseInt(matchNumber)
+
+    if (isNaN(matchNumber)) {
+      matchItem.meta.matchType = (matchItem.meta.matchNumber).toUpperCase()
+      matchItem.title = `${matchItem.meta.matchType} - ${matchItem.title}`
+      delete matchItem.meta.matchNumber
+    } else {
+      matchItem.meta.matchNumber = matchNumber
+    }
+
+    schedules.push(matchItem)
+  })
+
+  const outputJSON = {
+    venues,
+    teams,
+    schedules
+  }
 
   let outputFilePath = null
 
-  outputFilePath = 'ipl-schedule.json'
+  outputFilePath = 'ipl-2021-schedule.json'
 
   fse.writeFileSync(path.join(outputDir, outputFilePath),
     JSON.stringify(outputJSON, null, 2))
-
-  await browser.close()
 }
 
 mainProcess()

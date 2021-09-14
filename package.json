@@ -13,7 +13,7 @@
     "license": "GPL-3.0-or-later",
     "repository": {
         "type": "git",
-        "url": "https://github.com/paulbennet/ipl-2021-schedule-scrapper.git"
+        "url": "https://github.com/paulbennet/ipl-2021-schedule-scraper.git"
     },
     "dependencies": {
         "commander": "^8.1.0",
