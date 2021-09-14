@@ -26,6 +26,10 @@ const fetchResultsData = async () => {
 
   const resultsURL = 'https://www.iplt20.com/matches/results/men/2021'
 
+  page.setExtraHTTPHeaders({
+    'X-PUPPETEER-ID': 'ipl-2021-schedule-scraper'
+  })
+
   // NOTE: Fetch matches from results page
   await page.goto(resultsURL, {
     waitUntil: 'networkidle2',
@@ -137,6 +141,10 @@ const fetchSchedulesData = async () => {
 
   // DEBUG: Setting UA to latest chrome
   // page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
+
+  page.setExtraHTTPHeaders({
+    'X-PUPPETEER-ID': 'ipl-2021-schedule-scraper'
+  })
 
   // NOTE: Fetch matches from schedules page
   await page.goto(schedulesURL, {
