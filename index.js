@@ -219,6 +219,104 @@ const fetchSchedulesData = async () => {
   return schedulesJSON
 }
 
+const fetchPointsTableData = async () => {
+  const schedulesURL = 'https://www.iplt20.com/points-table/men/2021'
+
+  const browser = await puppeteer.launch({
+    // DEBUG: For visually debugging the browser
+    // headless: false,
+    // devtools: true,
+    // Page content should take full viewport of browser
+    defaultViewport: null
+  })
+
+  // Using the default opened page itself
+  // const pages = await browser.pages()
+  // const page = pages[0]
+
+  const context = await browser.createIncognitoBrowserContext()
+  const page = await context.newPage()
+
+  // DEBUG: Setting UA to latest chrome
+  // page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
+
+  page.setExtraHTTPHeaders({
+    'X-PUPPETEER-ID': 'ipl-2021-schedule-scraper'
+  })
+
+  // NOTE: Fetch matches from schedules page
+  await page.goto(schedulesURL, {
+    waitUntil: 'networkidle2',
+    // Hopefully page should load before 20 secs
+    timeout: 20000
+  })
+
+  await page.waitForTimeout(2000)
+
+  let pointsTableJSON = null
+
+  pointsTableJSON = await page.evaluate(() => {
+    return new Promise((resolve, reject) => {
+      const $ = window.$
+
+      const events = []
+
+      const getAbsURL = (relURL = '') => {
+        return $('<a />').attr('href', relURL)[0].href
+      }
+
+      const sanitizeText = (text = '') => {
+        return text.replace(/\n/gmi, '')
+      }
+
+      $('.js-match.match-list__item').each((index, element) => {
+        const participants = []
+
+        $(element).find('.fixture__team').each((teamIndex, teamElement) => {
+          const participant = {
+            teamID: sanitizeText($(teamElement).find('.fixture__team-name--abbrv').text()),
+            teamName: sanitizeText($(teamElement).find('.fixture__team-name').eq(0).text())
+          }
+
+          participants.push(participant)
+        }
+        )
+
+        let startTime = new Date($(element).attr('data-timestamp'))
+
+        startTime = startTime.toISOString()
+
+        const infoElement = $(element).find('.fixture__info span')
+        const matchNumber = sanitizeText($(infoElement).find('.fixture__description').text()).replace(/match /gmi, '')
+        const matchID = $(element).attr('data-match-id')
+        const venueID = $(element).attr('data-venue-id')
+
+        const title = `${participants[0].teamName} 🆚 ${participants[1].teamName}`
+
+        events.push({
+          startTime,
+          location: sanitizeText(infoElement.get(0).childNodes[1].nodeValue).trim(),
+          title,
+          link: getAbsURL($(element).find('.fixture__button.fixture__button--mc.btn').attr('href')),
+          meta: {
+            participants,
+            matchNumber,
+            matchID,
+            venueID
+          }
+        })
+      }
+      )
+
+      resolve(events)
+    })
+  })
+
+  await browser.close()
+
+  return pointsTableJSON
+}
+
 const mainProcess = async () => {
   program.option('-o --output-dir <output-dir>', 'Output directory path')
 
@@ -250,6 +348,7 @@ const mainProcess = async () => {
 
   const resultsJSON = await fetchResultsData()
   const schedulesJSON = await fetchSchedulesData()
+  const pointsTableJSON = await fetchPointsTableData()
 
   const schedules = []
 
@@ -300,6 +399,7 @@ const mainProcess = async () => {
   const outputJSON = {
     venues,
     teams,
+    points: pointsTableJSON,
     schedules
   }
 
