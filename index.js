@@ -261,13 +261,16 @@ const fetchPointsTableData = async () => {
 
       const eventElems = $('.standings-table--full ').find('tbody')
 
-      const teams = []
+      const teamPoints = []
+
       eventElems.find('tr').each((index, row) => {
         if (index !== 0) {
           const data = $(row).find('td')
           const teamObj = $(data[1]).find('a')
+
           let id = ''
           let name = ''
+
           $(teamObj[0]).find('.standings-table__team-name').each((teamNameIndex, teamName) => {
             if (teamNameIndex === 0) {
               name = $(teamName).text()
@@ -275,7 +278,8 @@ const fetchPointsTableData = async () => {
               id = $(teamName).text()
             }
           })
-          teams.push({
+
+          teamPoints.push({
             id,
             name,
             played: $(data[2]).text(),
@@ -290,7 +294,7 @@ const fetchPointsTableData = async () => {
           })
         }
       })
-      resolve(teams)
+      resolve(teamPoints)
     })
   })
 
