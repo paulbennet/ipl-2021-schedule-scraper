@@ -44,7 +44,6 @@ const fetchResultsData = async () => {
   resultsJSON = await page.evaluate(() => {
     return new Promise((resolve, reject) => {
       const $ = window.$
-
       const events = []
 
       const getAbsURL = (relURL = '') => {
@@ -67,11 +66,25 @@ const fetchResultsData = async () => {
             teamName: sanitizeText($(teamElement).find('.result__team-name').eq(0).text())
           }
 
+          const scoreObj = $(teamElement).find('.result__score')
+
+          const runsObj = ($(scoreObj).html().split('\n')[1].replace('<strong>', '').replace('</strong>', ''))
+
+          const runs = runsObj.split('/')[0].replace(/\s/g, '')
+          const wickets = runsObj.split('/')[1]
+
+          const oversObj = $(scoreObj).find('.result__overs').text()
+
+          const overs = sanitizeText(oversObj).replace(/\s/g, '')
+
           const isWinner = !($(teamElement).hasClass('result__team--loser'))
 
           if (isWinner) {
             participant.isWinner = true
           }
+          participant.runs = runs
+          participant.wickets = wickets
+          participant.overs = overs.split('/')[0]
 
           participants.push(participant)
         }
@@ -86,8 +99,6 @@ const fetchResultsData = async () => {
         const matchID = $(element).attr('data-match-id')
         const venueID = $(element).attr('data-venue-id')
 
-        console.log(participants)
-
         const title = `${participants[0].teamName} 🆚 ${participants[1].teamName}`
 
         let location = sanitizeText(infoElement.get(0).childNodes[2].nodeValue).trim()
@@ -97,17 +108,24 @@ const fetchResultsData = async () => {
         }
         ).join(', ').trim()
 
+        const meta = {
+          participants,
+          matchNumber,
+          matchID,
+          venueID
+        }
+
+        if (participants[0].runs !== participants[1].runs) {
+          const resultOutcome = $(element).find('.result__outcome').html()
+          meta.outcome = `won${resultOutcome.split('won')[1]}`
+        }
+
         events.push({
           startTime,
           location,
           title,
           link: getAbsURL($(element).find('.result__button.result__button--mc.btn').attr('href')),
-          meta: {
-            participants,
-            matchNumber,
-            matchID,
-            venueID
-          }
+          meta
         })
       }
       )
