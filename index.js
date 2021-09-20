@@ -197,7 +197,7 @@ const fetchSchedulesData = async () => {
 
         events.push({
           startTime,
-          location: sanitizeText(infoElement.get(0).childNodes[1].nodeValue).trim(),
+          location: sanitizeText(infoElement.find('.fixture__description').get(0).parentNode.childNodes[1].nodeValue).trim(),
           title,
           link: getAbsURL($(element).find('.fixture__button.fixture__button--mc.btn').attr('href')),
           meta: {
