@@ -259,56 +259,38 @@ const fetchPointsTableData = async () => {
     return new Promise((resolve, reject) => {
       const $ = window.$
 
-      const events = []
+      const eventElems = $('.standings-table--full ').find('tbody')
 
-      const getAbsURL = (relURL = '') => {
-        return $('<a />').attr('href', relURL)[0].href
-      }
-
-      const sanitizeText = (text = '') => {
-        return text.replace(/\n/gmi, '')
-      }
-
-      $('.js-match.match-list__item').each((index, element) => {
-        const participants = []
-
-        $(element).find('.fixture__team').each((teamIndex, teamElement) => {
-          const participant = {
-            teamID: sanitizeText($(teamElement).find('.fixture__team-name--abbrv').text()),
-            teamName: sanitizeText($(teamElement).find('.fixture__team-name').eq(0).text())
-          }
-
-          participants.push(participant)
+      const teams = []
+      eventElems.find('tr').each((index, row) => {
+        if (index !== 0) {
+          const data = $(row).find('td')
+          const teamObj = $(data[1]).find('a')
+          let id = ''
+          let name = ''
+          $(teamObj[0]).find('.standings-table__team-name').each((teamNameIndex, teamName) => {
+            if (teamNameIndex === 0) {
+              name = $(teamName).text()
+            } else {
+              id = $(teamName).text()
+            }
+          })
+          teams.push({
+            id,
+            name,
+            played: $(data[2]).text(),
+            won: $(data[3]).text(),
+            lost: $(data[4]).text(),
+            tied: $(data[5]).text(),
+            noResult: $(data[6]).text(),
+            runRate: $(data[7]).text(),
+            for: $(data[8]).text(),
+            against: $(data[9]).text(),
+            points: $(data[10]).text()
+          })
         }
-        )
-
-        let startTime = new Date($(element).attr('data-timestamp'))
-
-        startTime = startTime.toISOString()
-
-        const infoElement = $(element).find('.fixture__info span')
-        const matchNumber = sanitizeText($(infoElement).find('.fixture__description').text()).replace(/match /gmi, '')
-        const matchID = $(element).attr('data-match-id')
-        const venueID = $(element).attr('data-venue-id')
-
-        const title = `${participants[0].teamName} 🆚 ${participants[1].teamName}`
-
-        events.push({
-          startTime,
-          location: sanitizeText(infoElement.get(0).childNodes[1].nodeValue).trim(),
-          title,
-          link: getAbsURL($(element).find('.fixture__button.fixture__button--mc.btn').attr('href')),
-          meta: {
-            participants,
-            matchNumber,
-            matchID,
-            venueID
-          }
-        })
-      }
-      )
-
-      resolve(events)
+      })
+      resolve(teams)
     })
   })
 
