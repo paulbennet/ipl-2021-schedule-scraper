@@ -103,7 +103,7 @@ const fetchResultsData = async () => {
 
         let location = sanitizeText(infoElement.get(0).childNodes[2].nodeValue).trim()
 
-        location = location.split(',').slice(1).map((item) => {
+        location = location.split(',').slice(2).map((item) => {
           return item.trim()
         }
         ).join(', ').trim()
