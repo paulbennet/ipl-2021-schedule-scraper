@@ -350,9 +350,14 @@ const mainProcess = async () => {
   const teams = {}
   const completedMatches = {}
 
+  const pointsTableJSON = await fetchPointsTableData()
   const resultsJSON = await fetchResultsData()
   const schedulesJSON = await fetchSchedulesData()
-  const pointsTableJSON = await fetchPointsTableData()
+
+  const pointsTableAsMap = pointsTableJSON.reduce((map = {}, pointsTableItem) => {
+    map[pointsTableItem.id] = pointsTableItem
+    return map
+  }, {})
 
   const schedules = []
 
@@ -365,6 +370,9 @@ const mainProcess = async () => {
       if (participant.teamID === 'TBC') {
         return null
       }
+
+      participant.points = pointsTableAsMap[participant.teamID].points
+
       teams[participant.teamID] = participant.teamName
     })
 
@@ -383,6 +391,9 @@ const mainProcess = async () => {
       if (participant.teamID === 'TBC') {
         return null
       }
+
+      participant.points = pointsTableAsMap[participant.teamID].points
+
       teams[participant.teamID] = participant.teamName
     })
 

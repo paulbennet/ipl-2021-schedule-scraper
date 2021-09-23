@@ -1,13 +1,13 @@
 {
     "name": "ipl-2021-schedule-scraper",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "A puppeteer based web scraper for IPL event schedule",
     "main": "index.js",
     "bin": {
         "ipl-2021-scraper": "index.js"
     },
     "scripts": {
-        "fetch": "node index.js"
+        "fetch": "node index.js --output-dir ./schedules"
     },
     "author": "paulbennetjoshua@gmail.com",
     "license": "GPL-3.0-or-later",
