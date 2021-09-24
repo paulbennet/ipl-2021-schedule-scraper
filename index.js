@@ -99,7 +99,7 @@ const fetchResultsData = async () => {
         const matchID = $(element).attr('data-match-id')
         const venueID = $(element).attr('data-venue-id')
 
-        const title = `🏏 ${participants[0].teamName} vs ${participants[1].teamName}`
+        const title = `🏏 ${participants[0].teamID} vs ${participants[1].teamID}`
 
         let location = sanitizeText(infoElement.get(0).childNodes[2].nodeValue).trim()
 
