@@ -211,7 +211,7 @@ const fetchSchedulesData = async () => {
         const matchID = $(element).attr('data-match-id')
         const venueID = $(element).attr('data-venue-id')
 
-        const title = `${participants[0].teamName} 🆚 ${participants[1].teamName}`
+        const title = `🏏 ${participants[0].teamID} vs ${participants[1].teamID}`
 
         events.push({
           startTime,
